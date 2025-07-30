@@ -2,6 +2,7 @@ package main
 
 import (
 	"net"
+	"strings"
 
 	"go.uber.org/zap"
 )
@@ -74,6 +75,10 @@ func (u *User) SendMsg(msg string) {
 
 // buissness logic
 func (u *User) DoMessage(msg string) {
+	u.server.Logger.Debug("recv from user",
+		zap.String("name", u.Name),
+		zap.String("message", msg))
+
 	if msg == "who" { // who command
 		who := "online users: ["
 
@@ -90,12 +95,27 @@ func (u *User) DoMessage(msg string) {
 	} else if len(msg) > 7 && msg[:7] == "rename " {
 		// rename {new name}
 		newName := msg[7:]
-		if u.server.isOnline(&User{Name: newName}) {
+		if u.server.isOnline(newName) {
 			u.SendMsg("User name already exists\n")
 			return
 		}
 
 		u.ModifyName(newName)
+	} else if strings.HasPrefix(msg, "to ") && len(msg) > 3 {
+		// to {username} {msg}
+		split := strings.Split(msg, " ")
+		if len(split) < 3 {
+			u.SendMsg("Invalid message format, useage: to {username} {msg}\n")
+			return
+		}
+
+		username := split[1]
+		if !u.server.isOnline(username) {
+			u.SendMsg("User not online\n")
+			return
+		}
+		content := split[2]
+		u.server.OnlineUsers[username].SendMsg(u.Name + " said to you:" + content + "\n")
 	} else { // normal data
 		u.server.broadCast(u, msg)
 	}

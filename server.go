@@ -94,7 +94,7 @@ func (s *Server) Handler(conn net.Conn) {
 		select {
 		case <-isAlive: // this case should be before timeout case, otherwise it will block
 			// do nothing, just for activate select to reset timer
-		case <-time.After(time.Second * 10):
+		case <-time.After(time.Minute * 1):
 			u.SendMsg("You've been kicked for timeout\n")
 			u.Offline()
 			return
@@ -134,9 +134,9 @@ func (s *Server) Start() {
 	}
 }
 
-func (s *Server) isOnline(u *User) bool {
+func (s *Server) isOnline(username string) bool {
 	s.OnlineUsersLock.RLock()
-	_, ok := s.OnlineUsers[u.Name]
+	_, ok := s.OnlineUsers[username]
 	s.OnlineUsersLock.RUnlock()
 	return ok
 }
