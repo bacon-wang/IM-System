@@ -90,6 +90,11 @@ func (u *User) DoMessage(msg string) {
 	} else if len(msg) > 7 && msg[:7] == "rename " {
 		// rename {new name}
 		newName := msg[7:]
+		if u.server.isOnline(&User{Name: newName}) {
+			u.SendMsg("User name already exists\n")
+			return
+		}
+
 		u.ModifyName(newName)
 	} else { // normal data
 		u.server.broadCast(u, msg)
@@ -104,5 +109,5 @@ func (u *User) ModifyName(newName string) {
 	u.server.OnlineUsers[u.Name] = u
 	u.server.OnlineUsersLock.Unlock()
 
-	u.server.broadCast(u, "changed name to \""+newName+"\"")
+	u.SendMsg("You've changed name to \"" + newName + "\"\n")
 }

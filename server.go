@@ -118,3 +118,10 @@ func (s *Server) Start() {
 		go s.Handler(conn)
 	}
 }
+
+func (s *Server) isOnline(u *User) bool {
+	s.OnlineUsersLock.RLock()
+	_, ok := s.OnlineUsers[u.Name]
+	s.OnlineUsersLock.RUnlock()
+	return ok
+}
