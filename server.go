@@ -5,6 +5,7 @@ import (
 	"net"
 	"strconv"
 	"sync"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -58,7 +59,10 @@ func (s *Server) Handler(conn net.Conn) {
 
 	u.Online()
 
-	// process user message
+	// listen that is user alive
+	isAlive := make(chan bool)
+
+	// process user message (with timeout kick)
 	go func() {
 		for {
 			// read from user
@@ -77,6 +81,8 @@ func (s *Server) Handler(conn net.Conn) {
 				return
 			}
 
+			isAlive <- true
+
 			msg := string(buf[:n-1]) // get rid off '\n'
 
 			// do buissness logic
@@ -84,7 +90,16 @@ func (s *Server) Handler(conn net.Conn) {
 		}
 	}()
 
-	select {}
+	for {
+		select {
+		case <-isAlive: // this case should be before timeout case, otherwise it will block
+			// do nothing, just for activate select to reset timer
+		case <-time.After(time.Second * 10):
+			u.SendMsg("You've been kicked for timeout\n")
+			u.Offline()
+			return
+		}
+	}
 }
 
 func (s *Server) Start() {
