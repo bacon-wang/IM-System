@@ -67,6 +67,42 @@ func (u *User) Offline() {
 	u.conn.Close()
 }
 
+// send message to user
+func (u *User) SendMsg(msg string) {
+	u.conn.Write([]byte(msg))
+}
+
+// buissness logic
 func (u *User) DoMessage(msg string) {
-	u.server.broadCast(u, msg)
+	if msg == "who" { // who command
+		who := "online users: ["
+
+		u.server.OnlineUsersLock.RLock()
+		for username := range u.server.OnlineUsers {
+			who += username + ", "
+		}
+		u.server.OnlineUsersLock.RUnlock()
+
+		who = who[:len(who)-2]
+		who += "]\n"
+
+		u.SendMsg(who)
+	} else if len(msg) > 7 && msg[:7] == "rename " {
+		// rename {new name}
+		newName := msg[7:]
+		u.ModifyName(newName)
+	} else { // normal data
+		u.server.broadCast(u, msg)
+	}
+}
+
+// modify username
+func (u *User) ModifyName(newName string) {
+	u.server.OnlineUsersLock.Lock()
+	delete(u.server.OnlineUsers, u.Name)
+	u.Name = newName
+	u.server.OnlineUsers[u.Name] = u
+	u.server.OnlineUsersLock.Unlock()
+
+	u.server.broadCast(u, "changed name to \""+newName+"\"")
 }
